@@ -1,5 +1,8 @@
 import numpy as np
 import scipy.stats as st
+from sklearn.lda import LDA
+from sklearn.qda import QDA
+from sklearn.linear_model import LogisticRegression
 import matplotlib.pyplot as plt
 
 '''
@@ -7,6 +10,13 @@ This code will draw events from two classes, each a function of three
 covariates. These events will be plotted on the two axes chosen by the user.
 The Bayes decision boundary will also be drawn on this plot.
 '''
+
+# Make your plots prettier
+from mpltools import style
+style.use('ggplot')
+
+# Set random seed
+np.random.seed(4)
 
 # Number of events pulled from classes
 sizes = np.array([60,300])
@@ -61,11 +71,7 @@ def plot_samples(samples=samples, xind=0, yind=1):
                                 [cmat[yind,xind],cmat[yind,yind]]])
                       for cmat in covmats]
     reducedmeans = np.array([[means[0][xind],means[0][yind]],
-                             [means[1][xind],means[1][yind]]])
-    
-    testpdf = st.multivariate_normal(mean=reducedmeans[0], 
-                                     cov=reducedcovmats[0]) 
-
+                             [means[1][xind],means[1][yind]]])    
     classpdfs = [st.multivariate_normal(mean=reducedmeans[i], 
                                         cov=reducedcovmats[i]) 
                  for i in xrange(2) ]                        
@@ -80,11 +86,61 @@ def plot_samples(samples=samples, xind=0, yind=1):
                        linestyles='dashed')
 
     plt.clabel(cntr, fontsize=12, fmt={0.:''}) # 'fmt' dict ensures no label is
-    # written through the line.
+    # written through the line on the plot itself.
     cntr.collections[0].set_label('Bayes Boundary')
+
+    # Create and train LDA classifier
+    clf = LDA()
+    trainx = np.concatenate( (samples[0][:,(xind,yind)],
+                              samples[1][:,(xind,yind)]) )
+    trainy = np.concatenate((np.zeros(sizes[0]),np.ones(sizes[1])))
+    clf.fit(trainx,trainy)
+    # Plot LDA decision boundary, set label. 
+    cntr = decision_boundary(clf, axlims, color='cyan')
+    plt.clabel(cntr, fontsize=12, fmt={0.:''}) # 'fmt' dict ensures no label is
+    # written through the line on the plot itself.
+    cntr.collections[0].set_label('LDA Boundary')    
+
+    # Create and train QDA classifier
+    clf = QDA()
+    clf.fit(trainx,trainy)
+    # Plot QDA decision boundary, set label. 
+    cntr = decision_boundary(clf, axlims, color='magenta')
+    plt.clabel(cntr, fontsize=12, fmt={0.:''}) # 'fmt' dict ensures no label is
+    # written through the line on the plot itself.
+    cntr.collections[0].set_label('QDA Boundary')    
+
+    # Create and train logistic regression classifier
+    clf = LogisticRegression()
+    clf.fit(trainx,trainy)
+    # Plot QDA decision boundary, set label. 
+    cntr = decision_boundary(clf, axlims, color='purple')
+    plt.clabel(cntr, fontsize=12, fmt={0.:''}) # 'fmt' dict ensures no label is
+    # written through the line on the plot itself.
+    cntr.collections[0].set_label('Logistic Reg.')    
+
     plt.legend()
     plt.show()
     
+
+def decision_boundary(clf, axlims, ax=None, threshold=0., color='cyan'):
+    '''
+    Plot decision boundary of classifier 'clf'.
+    '''
+    xmin, xmax, ymin, ymax = axlims
+
+    # Make mesh grid for decision contour plot
+    xx, yy = np.meshgrid(np.linspace(xmin, xmax, num=500),
+                         np.linspace(ymin, ymax, num=500))
+    z = clf.predict(np.c_[xx.ravel(), yy.ravel()])
+    zz = z.reshape(xx.shape)
+
+    if ax is None:
+        ax = plt.gca()
+
+    return ax.contour(xx, yy, zz, levels=[threshold], colors=color, 
+                      linewidths=4)
+
 if __name__=='__main__':
-    plot_samples(xind=0,yind=2)
+    plot_samples(xind=0,yind=1)
         

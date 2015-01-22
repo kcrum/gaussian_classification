@@ -19,7 +19,8 @@ style.use('ggplot')
 np.random.seed(4)
 
 # Number of events pulled from classes
-sizes = np.array([60,300])
+#sizes = np.array([60,300])
+sizes = np.array([200,1000])
 ntotal = sum(sizes)
 # Classes well-separated along x and y axes, not so much along z.
 means = np.array([[-1,1,0],[1,0,0.1]])
@@ -28,9 +29,9 @@ means = np.array([[-1,1,0],[1,0,0.1]])
 covmat0 = np.array([[1.7, 0.5, -0.3],
                     [0.5, 1.1, 0.1],
                     [-0.3, 0.1, 1.5]])
-covmat1 = np.array([[1, 0.1, -0.5],
-                    [0.1, 1, 0.3],
-                    [-0.5, 0.3, 1]])
+covmat1 = np.array([[1, 0.1, 0.5],
+                    [0.1, 1, -0.3],
+                    [0.5, -0.3, 0.7]])
 covmats = [covmat0, covmat1]
 
 # Ensure covmat is pos. def.
@@ -39,12 +40,12 @@ for cmat in covmats:
         print 'Covariance matrix not positive definite. Exiting!'
         raise SystemExit
 
+# Create PDFs
+pdfs = [st.multivariate_normal(mean=m, cov=c) for m,c in zip(means,covmats)]
+
 # Pull sample from each class
-samples = []
-samples.append(st.multivariate_normal.rvs(mean=means[0], cov=covmats[0], 
-                                          size=sizes[0]))
-samples.append(st.multivariate_normal.rvs(mean=means[1], cov=covmats[1], 
-                                          size=sizes[1]))
+samples = [p.rvs(size=s) for p,s in zip(pdfs,sizes)]
+
 
 def plot_samples(samples=samples, xind=0, yind=1):
     '''
@@ -88,15 +89,41 @@ def plot_samples(samples=samples, xind=0, yind=1):
     plt.clabel(cntr, fontsize=12, fmt={0.:''}) # 'fmt' dict ensures no label is
     # written through the line on the plot itself.
     cntr.collections[0].set_label('Bayes Boundary')
+    # Output Bayes rate
+    bayes_rate(pdfs, samples)
 
-    # Create and train LDA classifier
-    clf = LDA()
     trainx = np.concatenate( (samples[0][:,(xind,yind)],
                               samples[1][:,(xind,yind)]) )
     trainy = np.concatenate((np.zeros(sizes[0]),np.ones(sizes[1])))
+
+    # Create and train logistic regression classifier
+    clf = LogisticRegression()
     clf.fit(trainx,trainy)
+    # Output logistic regression score
+    print 'Logistic regression class 0 training score (2-D only): %.2f' % \
+        clf.score(samples[0][:,(xind,yind)],np.zeros(sizes[0]))
+    print 'Logistic regression class 1 training score (2-D only): %.2f' % \
+        clf.score(samples[1][:,(xind,yind)],np.ones(sizes[1]))
+    print 'Logistic regression total training score (2-D only): %.2f' % \
+        clf.score(trainx, trainy)
+    # Plot QDA decision boundary, set label. 
+    cntr = decision_boundary(clf, axlims, color='purple')
+    plt.clabel(cntr, fontsize=12, fmt={0.:''}) # 'fmt' dict ensures no label is
+    # written through the line on the plot itself.
+    cntr.collections[0].set_label('Logistic Reg.')    
+
+    # Create and train LDA classifier
+    clf = LDA()
+    clf.fit(trainx,trainy)
+    # Output LDA score
+    print 'LDA class 0 training score (2-D only): %.2f' % \
+        clf.score(samples[0][:,(xind,yind)],np.zeros(sizes[0]))
+    print 'LDA class 1 training score (2-D only): %.2f' % \
+        clf.score(samples[1][:,(xind,yind)],np.ones(sizes[1]))
+    print 'LDA total training score (2-D only): %.2f' % \
+        clf.score(trainx, trainy)
     # Plot LDA decision boundary, set label. 
-    cntr = decision_boundary(clf, axlims, color='cyan')
+    cntr = decision_boundary(clf, axlims, color='orange')
     plt.clabel(cntr, fontsize=12, fmt={0.:''}) # 'fmt' dict ensures no label is
     # written through the line on the plot itself.
     cntr.collections[0].set_label('LDA Boundary')    
@@ -104,20 +131,18 @@ def plot_samples(samples=samples, xind=0, yind=1):
     # Create and train QDA classifier
     clf = QDA()
     clf.fit(trainx,trainy)
+    # Output QDA score
+    print 'QDA class 0 training score (2-D only): %.2f' % \
+        clf.score(samples[0][:,(xind,yind)],np.zeros(sizes[0]))
+    print 'QDA class 1 training score (2-D only): %.2f' % \
+        clf.score(samples[1][:,(xind,yind)],np.ones(sizes[1]))
+    print 'QDA total training score (2-D only): %.2f' % \
+        clf.score(trainx, trainy)
     # Plot QDA decision boundary, set label. 
     cntr = decision_boundary(clf, axlims, color='magenta')
     plt.clabel(cntr, fontsize=12, fmt={0.:''}) # 'fmt' dict ensures no label is
     # written through the line on the plot itself.
     cntr.collections[0].set_label('QDA Boundary')    
-
-    # Create and train logistic regression classifier
-    clf = LogisticRegression()
-    clf.fit(trainx,trainy)
-    # Plot QDA decision boundary, set label. 
-    cntr = decision_boundary(clf, axlims, color='purple')
-    plt.clabel(cntr, fontsize=12, fmt={0.:''}) # 'fmt' dict ensures no label is
-    # written through the line on the plot itself.
-    cntr.collections[0].set_label('Logistic Reg.')    
 
     plt.legend()
     plt.show()
@@ -141,6 +166,24 @@ def decision_boundary(clf, axlims, ax=None, threshold=0., color='cyan'):
     return ax.contour(xx, yy, zz, levels=[threshold], colors=color, 
                       linewidths=4)
 
+
+def bayes_rate(pdfs, samples):
+    '''
+    Find Bayes prediction rate on samples. Can you make this find the more 
+    general Bayes rate over whole Real^3 space?
+    '''
+    predrate = np.empty(len(samples), dtype=float)
+
+    for ind in xrange(len(samples)):
+        for point in samples[ind]:
+            # Find pdf with maximum prob. for each point. 
+            maxprob = max([p.pdf(point) for p in pdfs])
+            if pdfs[ind].pdf(point) == maxprob:
+                predrate[ind] += 1
+        print 'Bayes rate for class %s training data (all dimensions): %.2f' %\
+            (ind, predrate[ind]/sizes[ind])
+    print  'Total Bayes rate for training data (all dimensions): %.2f' %\
+        (sum(predrate)/sum(sizes))
 if __name__=='__main__':
-    plot_samples(xind=0,yind=1)
+    plot_samples(xind=0,yind=2)
         

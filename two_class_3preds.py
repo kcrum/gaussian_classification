@@ -19,9 +19,9 @@ style.use('ggplot')
 np.random.seed(4)
 
 # Number of events pulled from classes
-#sizes = np.array([60,300])
 sizes = np.array([500,1000])
 ntotal = sum(sizes)
+
 # Classes well-separated along x and y axes, not so much along z.
 means = np.array([[-1,1,0],[1,0,0.1]])
 

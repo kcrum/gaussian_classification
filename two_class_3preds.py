@@ -20,7 +20,7 @@ np.random.seed(4)
 
 # Number of events pulled from classes
 #sizes = np.array([60,300])
-sizes = np.array([200,1000])
+sizes = np.array([500,1000])
 ntotal = sum(sizes)
 # Classes well-separated along x and y axes, not so much along z.
 means = np.array([[-1,1,0],[1,0,0.1]])
@@ -47,7 +47,7 @@ pdfs = [st.multivariate_normal(mean=m, cov=c) for m,c in zip(means,covmats)]
 samples = [p.rvs(size=s) for p,s in zip(pdfs,sizes)]
 
 
-def plot_samples(samples=samples, xind=0, yind=1):
+def plot_samples(samples=samples, xind=0, yind=1, plotEigenvecs = True):
     '''
     "xind" and "yind" are the indices of the variables plotted on the x- and 
     y-axis, respectively.
@@ -57,8 +57,13 @@ def plot_samples(samples=samples, xind=0, yind=1):
         raise SystemExit
 
     # Plot sample
-    plt.scatter(samples[0][:,xind], samples[0][:,yind], c='r')
     plt.scatter(samples[1][:,xind], samples[1][:,yind], c='b')
+    plt.scatter(samples[0][:,xind], samples[0][:,yind], c='r')
+
+    # Plot eigenvectors, if desired
+    if plotEigenvecs:
+        plot_eigenvectors(samples[0], xind, yind, c='yellow', label='0')
+        plot_eigenvectors(samples[1], xind, yind, c='yellow', label='1')
 
     # Get axis limits, create contour mesh. Pair x and y grid coordinates into 
     # a list of coordinate pairs.
@@ -167,6 +172,24 @@ def decision_boundary(clf, axlims, ax=None, threshold=0., color='cyan'):
                       linewidths=4)
 
 
+def plot_eigenvectors(sample, xind, yind, label=None, ax=None, c='brown'):
+    '''
+    Plot eigenvectors of data sample.
+    '''
+    sampmean = sample[:,(xind,yind)].mean(axis=0)
+    sampcov = np.cov(sample[:,(xind,yind)].T)
+    eigvals, eigvecs = np.linalg.eig(sampcov) # Each column of eigvecs is a
+    # right eigenvector.
+
+    if ax is None:
+        ax = plt.gca()
+
+    for eigval, eigvec in zip(eigvals, eigvecs.T):
+        ax.arrow(sampmean[0], sampmean[1], eigval*eigvec[0], eigval*eigvec[1],
+                 head_width=0.13, head_length=0.2, width=0.07, fc=c, ec=c,
+                 label=label)
+
+
 def bayes_rate(pdfs, samples):
     '''
     Find Bayes prediction rate on samples. Can you make this find the more 
@@ -184,6 +207,8 @@ def bayes_rate(pdfs, samples):
             (ind, predrate[ind]/sizes[ind])
     print  'Total Bayes rate for training data (all dimensions): %.2f' %\
         (sum(predrate)/sum(sizes))
+
+
 if __name__=='__main__':
-    plot_samples(xind=0,yind=2)
+    plot_samples(xind=2, yind=0, plotEigenvecs=True)
         

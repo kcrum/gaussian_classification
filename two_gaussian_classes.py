@@ -6,9 +6,10 @@ from sklearn.linear_model import LogisticRegression
 import matplotlib.pyplot as plt
 
 '''
-This code will draw events from two classes, each a function of three 
-covariates. These events will be plotted on the two axes chosen by the user.
-The Bayes decision boundary will also be drawn on this plot.
+This code will draw events from two classes, each a function of some number of 
+covariates chosen by the user. These events will be plotted on the two axes
+chosen by the user. The Bayes decision boundary will also be drawn on this 
+plot.
 '''
 
 # Make your plots prettier
@@ -26,11 +27,17 @@ ntotal = sum(sizes)
 #means = np.array([[1,1],[-1,-1]])
 means = np.array([[1,1,1,1],[-1,-1,-1,-1]])
 
+# Ensure means are same dimensionality
+if len(means[0]) != len(means[1]):
+    print 'Both classes must have same sized feature space. Check the means!'
+    raise SystemExit
+
 # Covariance matrices
 #covmat0 = np.array([[1.7, 0.5],
 #                    [0.5, 1.1]])
 #covmat1 = np.array([[1, -0.3],
 #                    [-0.3, 1]])
+
 covmat0 = np.array([[1.7, 0.5, -0.1, 0.2],
                     [0.5, 1.1, 0.1, -0.1],
                     [-0.1, 0.1, 1.4, 0.6],
@@ -42,6 +49,15 @@ covmat1 = np.array([[1.2, -0.5, 0.1, 0.2],
                     [0.2, -0.1, 0.2, 1.]])
 
 covmats = [covmat0, covmat1]
+
+# Ensure covmats are same dimensionality as each other and means.
+if covmats[0].shape !=  covmats[1].shape:
+    print 'Covariance matrices must have the same shape. Exiting!'
+    raise SystemExit
+if covmats[0].shape[0] != means[0].size or \
+   covmats[0].shape[1] != means[0].size:
+    print 'Covariance matrices must have shape that is square of the dimensionality of the means. Exiting!'
+    raise SystemExit
 
 # Ensure covmat is pos. def.
 for cmat in covmats:

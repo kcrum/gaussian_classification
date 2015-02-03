@@ -17,15 +17,15 @@ from mpltools import style
 style.use('ggplot')
 
 # Set random seed
-#np.random.seed(4)
+np.random.seed(4)
 
 # Number of events pulled from classes
 sizes = np.array([500,1000])
 ntotal = sum(sizes)
 
 # Classes well-separated along x and y axes, not so much along z.
-#means = np.array([[1,1],[-1,-1]])
-means = np.array([[1,1,1,1],[-1,-1,-1,-1]])
+means = np.array([[1,1],[-1,-1]])
+#means = np.array([[1,1,1,1],[-1,-1,-1,-1]])
 
 # Ensure means are same dimensionality
 if len(means[0]) != len(means[1]):
@@ -33,20 +33,20 @@ if len(means[0]) != len(means[1]):
     raise SystemExit
 
 # Covariance matrices
-#covmat0 = np.array([[1.7, 0.5],
-#                    [0.5, 1.1]])
-#covmat1 = np.array([[1, -0.3],
-#                    [-0.3, 1]])
+covmat0 = np.array([[1.7, 0.5],
+                    [0.5, 1.7]])
+covmat1 = np.array([[2, -0.7],
+                    [-0.7, 2]])
 
-covmat0 = np.array([[1.7, 0.5, -0.1, 0.2],
-                    [0.5, 1.1, 0.1, -0.1],
-                    [-0.1, 0.1, 1.4, 0.6],
-                    [0.2, -0.1, 0.6, 1.3]])
-
-covmat1 = np.array([[1.2, -0.5, 0.1, 0.2],
-                    [-0.5, 1.1, -0.1, 0.1],
-                    [0.1, -0.1, 0.9, 0.2],
-                    [0.2, -0.1, 0.2, 1.]])
+#covmat0 = np.array([[1.7, 0.5, -0.1, 0.2],
+#                    [0.5, 1.1, 0.1, -0.1],
+#                    [-0.1, 0.1, 1.4, 0.6],
+#                    [0.2, -0.1, 0.6, 1.3]])
+#
+#covmat1 = np.array([[1.2, -0.5, 0.1, 0.2],
+#                    [-0.5, 1.1, -0.1, 0.1],
+#                    [0.1, -0.1, 0.9, 0.2],
+#                    [0.2, -0.1, 0.2, 1.]])
 
 covmats = [covmat0, covmat1]
 
@@ -235,5 +235,5 @@ def bayes_rate(pdfs, samples):
 
 
 if __name__=='__main__':
-    plot_samples(xind=0, yind=1, plotEigenvecs=True)
+    plot_samples(xind=0, yind=1, plotEigenvecs=False)
         

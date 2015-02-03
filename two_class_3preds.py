@@ -210,5 +210,5 @@ def bayes_rate(pdfs, samples):
 
 
 if __name__=='__main__':
-    plot_samples(xind=2, yind=0, plotEigenvecs=True)
+    plot_samples(xind=2, yind=0, plotEigenvecs=False)
         

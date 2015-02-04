@@ -19,60 +19,40 @@ style.use('ggplot')
 # Set random seed
 np.random.seed(4)
 
-# Number of events pulled from classes
-sizes = np.array([500,1000])
-ntotal = sum(sizes)
 
-# Classes well-separated along x and y axes, not so much along z.
-means = np.array([[1,1],[-1,-1]])
-#means = np.array([[1,1,1,1],[-1,-1,-1,-1]])
-
-# Ensure means are same dimensionality
-if len(means[0]) != len(means[1]):
-    print 'Both classes must have same sized feature space. Check the means!'
-    raise SystemExit
-
-# Covariance matrices
-covmat0 = np.array([[1.7, 0.5],
-                    [0.5, 1.7]])
-covmat1 = np.array([[2, -0.7],
-                    [-0.7, 2]])
-
-#covmat0 = np.array([[1.7, 0.5, -0.1, 0.2],
-#                    [0.5, 1.1, 0.1, -0.1],
-#                    [-0.1, 0.1, 1.4, 0.6],
-#                    [0.2, -0.1, 0.6, 1.3]])
-#
-#covmat1 = np.array([[1.2, -0.5, 0.1, 0.2],
-#                    [-0.5, 1.1, -0.1, 0.1],
-#                    [0.1, -0.1, 0.9, 0.2],
-#                    [0.2, -0.1, 0.2, 1.]])
-
-covmats = [covmat0, covmat1]
-
-# Ensure covmats are same dimensionality as each other and means.
-if covmats[0].shape !=  covmats[1].shape:
-    print 'Covariance matrices must have the same shape. Exiting!'
-    raise SystemExit
-if covmats[0].shape[0] != means[0].size or \
-   covmats[0].shape[1] != means[0].size:
-    print 'Covariance matrices must have shape that is square of the dimensionality of the means. Exiting!'
-    raise SystemExit
-
-# Ensure covmat is pos. def.
-for cmat in covmats:
-    if not np.all(np.linalg.eigvals(cmat) > 0):
-        print 'Covariance matrix not positive definite. Exiting!'
+def create_pdfs(means, covmats):
+    '''
+    Checks that means and covariance matrices entered by user make sense, then 
+    returns Gaussian PDFs.
+    '''
+    # Ensure means are same dimensionality
+    if len(means[0]) != len(means[1]):
+        print 'Both classes must have same sized feature space. Check the \
+        means array. Exiting!'
         raise SystemExit
 
-# Create PDFs
-pdfs = [st.multivariate_normal(mean=m, cov=c) for m,c in zip(means,covmats)]
+    # Ensure covmats are same dimensionality as each other and means.
+    if covmats[0].shape !=  covmats[1].shape:
+        print 'Covariance matrices must have the same shape. Exiting!'
+        raise SystemExit
+    if covmats[0].shape[0] != means[0].size or \
+       covmats[0].shape[1] != means[0].size:
+        print 'Covariance matrices must have shape that is square of the \
+        dimensionality of the means. Exiting!'
+        raise SystemExit
 
-# Pull sample from each class
-samples = [p.rvs(size=s) for p,s in zip(pdfs,sizes)]
+    # Ensure covmat is pos. def.
+    for cmat in covmats:
+        if not np.all(np.linalg.eigvals(cmat) > 0):
+            print 'Covariance matrix not positive definite. Exiting!'
+            raise SystemExit
+
+    # Return PDFs
+    return [st.multivariate_normal(mean=m,cov=c) for m,c in zip(means,covmats)]
 
 
-def plot_samples(samples=samples, xind=0, yind=1, plotEigenvecs = True):
+def plot_samples(samples, xind=0, yind=1, plotEigenvecs = True,
+                 outOfSampleFits = 0):
     '''
     "xind" and "yind" are the indices of the variables plotted on the x- and 
     y-axis, respectively.
@@ -80,6 +60,10 @@ def plot_samples(samples=samples, xind=0, yind=1, plotEigenvecs = True):
     if xind == yind:
         print "You need to pass different indices to 'plot_samples'; exiting."
         raise SystemExit
+
+    # Get sample sizes
+    sizes = [len(samples[0]), len(samples[1])]
+    ntotal = sum(sizes)
 
     # Plot sample
     plt.scatter(samples[1][:,xind], samples[1][:,yind], c='b')
@@ -119,8 +103,15 @@ def plot_samples(samples=samples, xind=0, yind=1, plotEigenvecs = True):
     plt.clabel(cntr, fontsize=12, fmt={0.:''}) # 'fmt' dict ensures no label is
     # written through the line on the plot itself.
     cntr.collections[0].set_label('Bayes Boundary')
+
     # Output Bayes rate
-    bayes_rate(pdfs, samples)
+    predrate = bayes_rate(pdfs, samples)
+    for ind in xrange(len(samples)):
+        print 'Bayes rate for class %s training data (all dimensions): %.2f' %\
+            (ind, predrate[ind]/sizes[ind])
+    print  'Total Bayes rate for training data (all dimensions): %.2f' %\
+        (sum(predrate)/sum(sizes))
+
 
     trainx = np.concatenate( (samples[0][:,(xind,yind)],
                               samples[1][:,(xind,yind)]) )
@@ -228,12 +219,41 @@ def bayes_rate(pdfs, samples):
             maxprob = max([p.pdf(point) for p in pdfs])
             if pdfs[ind].pdf(point) == maxprob:
                 predrate[ind] += 1
-        print 'Bayes rate for class %s training data (all dimensions): %.2f' %\
-            (ind, predrate[ind]/sizes[ind])
-    print  'Total Bayes rate for training data (all dimensions): %.2f' %\
-        (sum(predrate)/sum(sizes))
+    return predrate
+
 
 
 if __name__=='__main__':
-    plot_samples(xind=0, yind=1, plotEigenvecs=False)
+
+    # Number of events pulled from classes
+    sizes = np.array([500,1000])
+
+    # Classes well-separated along x and y axes, not so much along z.
+    means = np.array([[1,1],[-1,-1]])
+    #means = np.array([[1,1,1,1],[-1,-1,-1,-1]])
+
+    # Covariance matrices
+    covmat0 = np.array([[1.7, 0.5],
+                        [0.5, 1.7]])
+    covmat1 = np.array([[2, -0.7],
+                        [-0.7, 2]])
+
+    #covmat0 = np.array([[1.7, 0.5, -0.1, 0.2],
+    #                    [0.5, 1.1, 0.1, -0.1],
+    #                    [-0.1, 0.1, 1.4, 0.6],
+    #                    [0.2, -0.1, 0.6, 1.3]])
+    #
+    #covmat1 = np.array([[1.2, -0.5, 0.1, 0.2],
+    #                    [-0.5, 1.1, -0.1, 0.1],
+    #                    [0.1, -0.1, 0.9, 0.2],
+    #                    [0.2, -0.1, 0.2, 1.]])
+
+    covmats = [covmat0, covmat1]
+
+    pdfs = create_pdfs(means, covmats)
+
+    # Pull sample from each class
+    samples = [p.rvs(size=s) for p,s in zip(pdfs,sizes)]
+    
+    plot_samples(samples, xind=0, yind=1, plotEigenvecs=False)
         

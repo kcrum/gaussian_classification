@@ -323,7 +323,7 @@ if __name__=='__main__':
     #                    [0.1, -0.1, 0.9, 0.2],
     #                    [0.2, -0.1, 0.2, 1.]])
 
-    covmats = [covmat0, covmat0]
+    covmats = [covmat0, covmat1]
 
     pdfs = create_pdfs(means, covmats)
 

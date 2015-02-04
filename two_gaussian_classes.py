@@ -292,7 +292,7 @@ def out_of_sample_scores(pdfs, clfs, sizes, xyind, nOutOfSample):
     print 'Over %s out-of-sample data sets, the mean classification rate was:'\
         % nOutOfSample
     for name in scores:
-        print 'mean %s rate: %.5f %%' % (name,scores[name]/float(nOutOfSample))
+        print 'mean %s rate: %.5f' % (name,scores[name]/float(nOutOfSample))
 
 
 if __name__=='__main__':
